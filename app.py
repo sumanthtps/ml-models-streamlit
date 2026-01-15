@@ -1,5 +1,5 @@
 import streamlit as st
 
-st.set_page_config(page_title="ML Assignment 2", layout="wide")
-st.title("ML Assignment 2 - Setup Check")
+st.set_page_config(page_title="Breast cancer detection", layout="wide")
+st.title("Breast cancer detection")
 st.write("If you can see this page, Streamlit is working.")
