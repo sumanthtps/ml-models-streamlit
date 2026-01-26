@@ -31,7 +31,7 @@ def preprocess_data(data_path: str):
         ("scaler", StandardScaler()),
     ])
 
-    preprocess = ColumnTransformer(
+    preprocess_transformer = ColumnTransformer(
         transformers=[
             ("num", numeric_pipe, numeric_cols),
         ]
@@ -42,14 +42,8 @@ def preprocess_data(data_path: str):
     print("Train class balance:", y_train.value_counts(normalize=True).to_dict())
     print("Test  class balance:", y_test.value_counts(normalize=True).to_dict())
 
-    return X_train, X_test, y_train, y_test, preprocess, numeric_cols, categorical_cols
-
-def build_onehot():
-    try:
-        return OneHotEncoder(handle_unknown="ignore", sparse_output=False)
-    except TypeError:
-        return OneHotEncoder(handle_unknown="ignore", sparse=False)
+    return X_train, X_test, y_train, y_test, preprocess_transformer,
 
 if __name__ == "__main__":
-    data_path = "data/online_shoppers_intention.csv"
+    data_path = "data/mobile_price_train.csv"
     preprocess_data(data_path)
