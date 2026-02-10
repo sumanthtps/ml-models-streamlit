@@ -1,7 +1,7 @@
-# 📘 Assignment 2: Multi-Model Classification + Streamlit Deployment
+#  Assignment 2: Multi-Model Classification + Streamlit Deployment
 
 This project is built for **BITS Pilani WILP (M.Tech AIML/DSE)** Assignment-2.
-It implements and compares **6 classification models** on a single dataset, and deploys an interactive **Streamlit app** for inference and evaluation.
+It implements and compares **6 classification models** on a single dataset, and deploys an interactive **Streamlit app**.
 
 ---
 
@@ -151,6 +151,7 @@ streamlit run app.py
 ## 9) Reproducibility Notes
 - Random seed is fixed (`42`) for consistent model behavior.
 - All models share the same train-test split and preprocessing pipeline.
+- For Windows environments, training defaults to single-core (`CPU_JOBS=1`) to avoid loky/wmic warnings. Use `CPU_JOBS` env var to increase parallelism if desired.
 
 ---
 
