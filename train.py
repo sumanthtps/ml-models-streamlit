@@ -1,32 +1,32 @@
 import os
 import pickle
 from dataclasses import dataclass
-from typing import Any, List, Dict
+from typing import Any, Dict, List
 
 import pandas as pd
 from sklearn.metrics import (
     accuracy_score,
-    precision_score,
-    recall_score,
     f1_score,
     matthews_corrcoef,
+    precision_score,
+    recall_score,
     roc_auc_score,
 )
 from sklearn.pipeline import Pipeline
 
 from data.preprocess_data import preprocess_data
-from model.logistic_regression import build_logistic_regression
 from model.decision_tree import build_decision_tree
 from model.knn import build_knn
+from model.logistic_regression import build_logistic_regression
 from model.naive_bayes import build_naive_bayes
 from model.random_forest import build_random_forest
 from model.xgboost_model import build_xgboost
 
 DATA_PATH = "data/mobile_price_train.csv"
 RANDOM_SEED = 42
-
 MODEL_DIR = "model"
 METRICS_OUT_FILE = "metrics_comparison.csv"
+
 
 @dataclass(frozen=True)
 class ModelSpec:
@@ -45,11 +45,12 @@ def get_model_specs(random_seed: int, n_classes: int) -> List[ModelSpec]:
         ModelSpec("xgboost", "XGBoost", build_xgboost(random_seed, n_classes)),
     ]
 
+
 def compute_metrics(
     trained_pipeline: Pipeline,
     features_test: pd.DataFrame,
     labels_test: pd.Series,
-):
+) -> Dict[str, float]:
     predicted_labels = trained_pipeline.predict(features_test)
 
     accuracy = float(accuracy_score(labels_test, predicted_labels))
@@ -69,11 +70,13 @@ def compute_metrics(
         "MCC": mcc,
     }
 
+
 def save_pipeline_as_pkl(pipeline: Pipeline, file_path: str) -> None:
     with open(file_path, "wb") as file:
         pickle.dump(pipeline, file)
 
-def main():
+
+def main() -> None:
     os.makedirs(MODEL_DIR, exist_ok=True)
     (
         features_train,
@@ -84,7 +87,6 @@ def main():
     ) = preprocess_data(DATA_PATH)
 
     n_classes = int(labels_train.nunique())
-
     model_specs = get_model_specs(RANDOM_SEED, n_classes)
 
     metric_rows = []
@@ -96,24 +98,21 @@ def main():
                 ("model", model_spec.estimator),
             ]
         )
-
         pipeline.fit(features_train, labels_train)
-
         metrics = compute_metrics(pipeline, features_test, labels_test)
 
-        row: Dict[str, Any] = {"Model name": model_spec.display_name}
+        row: Dict[str, Any] = {"ML Model Name": model_spec.display_name}
         row.update(metrics)
         metric_rows.append(row)
 
-        model_file_path = os.path.join(MODEL_DIR, model_spec.model_key + ".pkl")
+        model_file_path = os.path.join(MODEL_DIR, f"{model_spec.model_key}.pkl")
         save_pipeline_as_pkl(pipeline, model_file_path)
-
         print(f"Trained and saved: {model_spec.display_name} to {model_file_path}")
 
     metrics_table = pd.DataFrame(metric_rows)
     metrics_table.to_csv(METRICS_OUT_FILE, index=False)
 
-    print("\nSaved metrics table", METRICS_OUT_FILE)
+    print(f"\nSaved metrics table {METRICS_OUT_FILE}")
     print(metrics_table.sort_values("AUC", ascending=False).to_string(index=False))
 
 
