@@ -1,6 +1,5 @@
 from xgboost import XGBClassifier
 
-
 def build_xgboost(random_seed: int, n_classes: int) -> XGBClassifier:
     return XGBClassifier(
         n_estimators=700,
