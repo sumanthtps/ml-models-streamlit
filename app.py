@@ -5,6 +5,8 @@ from typing import Any
 import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
+
+from data.preprocess_data import preprocess_data
 from sklearn.metrics import (
     ConfusionMatrixDisplay,
     accuracy_score,
@@ -18,9 +20,11 @@ from sklearn.metrics import (
 
 METRICS_PATH = "metrics_comparison.csv"
 MODEL_DIR = "model"
-DEFAULT_TARGET = "price_range"
-DEFAULT_PREDICT_FILE = "data/mobile_price_train.csv"
-DOWNLOAD_TEST_FILE = "data/mobile_price_test.csv"
+DEFAULT_TARGET = "class"
+RAW_DATA_FILE = "data/mushroom.csv"
+DEFAULT_PREDICT_FILE = "data/mushroom_test.csv"
+DOWNLOAD_TRAIN_FILE = "data/mushroom_train.csv"
+DOWNLOAD_TEST_FILE = "data/mushroom_test.csv"
 
 MODEL_KEYS = {
     "Logistic Regression": "logistic_regression",
@@ -31,9 +35,9 @@ MODEL_KEYS = {
     "XGBoost": "xgboost",
 }
 
-st.set_page_config(page_title="ML Assignment 2", layout="wide")
-st.title("📱 Mobile Price Classification - ML Assignment 2")
-st.caption("BITS Pilani WILP | Built with 6 classifiers + model explorer")
+st.set_page_config(page_title="Mushroom Classification", layout="wide")
+st.title("🍄 Mushroom Classification - Edible or Poisonous")
+st.caption("Built with 6 classifiers + model explorer")
 
 
 @st.cache_data
@@ -55,6 +59,15 @@ def load_model(model_key: str) -> Any:
     raise FileNotFoundError(f"No model artifact found for key '{model_key}' under {MODEL_DIR}")
 
 
+
+
+def ensure_split_files() -> None:
+    if os.path.exists(DOWNLOAD_TRAIN_FILE) and os.path.exists(DOWNLOAD_TEST_FILE):
+        return
+    if os.path.exists(RAW_DATA_FILE):
+        preprocess_data(RAW_DATA_FILE, train_out_path=DOWNLOAD_TRAIN_FILE, test_out_path=DOWNLOAD_TEST_FILE)
+
+
 def get_model_column(df: pd.DataFrame) -> str:
     return "ML Model Name" if "ML Model Name" in df.columns else "ML Model name"
 
@@ -70,7 +83,10 @@ def calculate_metrics(y_true: pd.Series, preds: pd.Series, proba: Any | None) ->
 
     if proba is not None:
         try:
-            metrics["AUC"] = roc_auc_score(y_true, proba, multi_class="ovr", average="macro")
+            if proba.shape[1] == 2:
+                metrics["AUC"] = roc_auc_score(y_true, proba[:, 1])
+            else:
+                metrics["AUC"] = roc_auc_score(y_true, proba, multi_class="ovr", average="macro")
         except ValueError:
             metrics["AUC"] = "N/A"
     else:
@@ -84,6 +100,7 @@ with st.sidebar:
     selected_model_name = st.selectbox("Select model", list(MODEL_KEYS.keys()))
     target_col = st.text_input("Target column (optional)", value=DEFAULT_TARGET)
 
+ensure_split_files()
 metrics_df = load_metrics()
 
 overview_tab, predict_tab, insight_tab = st.tabs(["📊 Model Comparison", "🔮 Predict", "🧠 Observations"])
@@ -105,12 +122,21 @@ with overview_tab:
 
 with predict_tab:
     st.subheader("Predict on Test CSV")
-    st.caption("Use the default sample file or upload your own CSV, then run predictions and metrics.")
+    st.caption("Use default split files or upload your own CSV, then run predictions and metrics.")
 
+    dl_cols = st.columns(2)
+    if os.path.exists(DOWNLOAD_TRAIN_FILE):
+        with open(DOWNLOAD_TRAIN_FILE, "rb") as file:
+            dl_cols[0].download_button(
+                label="Download 80% train split",
+                data=file.read(),
+                file_name=os.path.basename(DOWNLOAD_TRAIN_FILE),
+                mime="text/csv",
+            )
     if os.path.exists(DOWNLOAD_TEST_FILE):
         with open(DOWNLOAD_TEST_FILE, "rb") as file:
-            st.download_button(
-                label="Download sample test file",
+            dl_cols[1].download_button(
+                label="Download 20% test split",
                 data=file.read(),
                 file_name=os.path.basename(DOWNLOAD_TEST_FILE),
                 mime="text/csv",
@@ -146,7 +172,7 @@ with predict_tab:
 
         y_true = None
         if target_col in df.columns:
-            y_true = df[target_col].astype(int)
+            y_true = df[target_col]
             X_infer = df.drop(columns=[target_col])
         else:
             X_infer = df
@@ -154,7 +180,9 @@ with predict_tab:
         preds = model.predict(X_infer)
         proba = model.predict_proba(X_infer) if hasattr(model, "predict_proba") else None
 
-        output_df = df.copy()
+        output_df = X_infer.copy()
+        if y_true is not None:
+            output_df["ground_truth"] = y_true.values
         output_df["prediction"] = preds
 
         st.write("Predictions preview")

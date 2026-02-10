@@ -15,6 +15,7 @@ from sklearn.metrics import (
     recall_score,
     roc_auc_score,
 )
+from sklearn.preprocessing import label_binarize
 from sklearn.pipeline import Pipeline
 
 from data.preprocess_data import preprocess_data
@@ -62,7 +63,12 @@ def compute_metrics(
     recall = float(recall_score(labels_test, predicted_labels, average="macro", zero_division=0))
     f1 = float(f1_score(labels_test, predicted_labels, average="macro", zero_division=0))
     proba = trained_pipeline.predict_proba(features_test)
-    auc = float(roc_auc_score(labels_test, proba, multi_class="ovr", average="macro"))
+    classes = list(trained_pipeline.classes_)
+    if len(classes) == 2:
+        auc = float(roc_auc_score(labels_test, proba[:, 1]))
+    else:
+        labels_test_bin = label_binarize(labels_test, classes=classes)
+        auc = float(roc_auc_score(labels_test_bin, proba, multi_class="ovr", average="macro"))
     mcc = float(matthews_corrcoef(labels_test, predicted_labels))
 
     return {
