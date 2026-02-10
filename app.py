@@ -31,7 +31,7 @@ MODEL_KEYS = {
 
 st.set_page_config(page_title="ML Assignment 2", layout="wide")
 st.title("📱 Mobile Price Classification - ML Assignment 2")
-st.caption("BITS Pilani WILP | Built with 6 classifiers + model explorer")
+st.caption("Sumanth T P | 2025AA05544 | ML Models Comparison and Prediction App")
 
 
 @st.cache_data
@@ -78,14 +78,14 @@ def calculate_metrics(y_true: pd.Series, preds: pd.Series, proba: Any | None) ->
 
 
 with st.sidebar:
-    st.header("⚙️ Controls")
+    st.header("Controls")
     selected_model_name = st.selectbox("Select model", list(MODEL_KEYS.keys()))
     uploaded_file = st.file_uploader("Upload CSV test data", type=["csv"])
     target_col = st.text_input("Target column (optional)", value=DEFAULT_TARGET)
 
 metrics_df = load_metrics()
 
-overview_tab, predict_tab, insight_tab = st.tabs(["📊 Model Comparison", "🔮 Predict", "🧠 Observations"])
+overview_tab, predict_tab, insight_tab = st.tabs(["Model Comparison", "Predict", "Observations"])
 
 with overview_tab:
     st.subheader("Model Metrics Table")

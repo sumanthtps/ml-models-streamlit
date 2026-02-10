@@ -3,6 +3,9 @@ import pickle
 from dataclasses import dataclass
 from typing import Any, Dict, List
 
+# Prevent Windows loky physical-core detection warnings (wmic missing in some setups).
+os.environ.setdefault("LOKY_MAX_CPU_COUNT", os.getenv("CPU_JOBS", "1"))
+
 import pandas as pd
 from sklearn.metrics import (
     accuracy_score,
@@ -40,7 +43,7 @@ def get_model_specs(random_seed: int, n_classes: int, cpu_jobs: int) -> List[Mod
     return [
         ModelSpec("logistic_regression", "Logistic Regression", build_logistic_regression(random_seed)),
         ModelSpec("decision_tree", "Decision Tree", build_decision_tree(random_seed)),
-        ModelSpec("knn", "KNN", build_knn()),
+        ModelSpec("knn", "KNN", build_knn(n_jobs=cpu_jobs)),
         ModelSpec("naive_bayes", "Naive Bayes", build_naive_bayes()),
         ModelSpec("random_forest", "Random Forest", build_random_forest(random_seed, n_jobs=cpu_jobs)),
         ModelSpec("xgboost", "XGBoost", build_xgboost(random_seed, n_classes, n_jobs=cpu_jobs)),
