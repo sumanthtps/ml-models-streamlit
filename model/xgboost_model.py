@@ -1,6 +1,8 @@
 from xgboost import XGBClassifier
 
-def build_xgboost(random_seed: int, n_classes: int) -> XGBClassifier:
+
+def build_xgboost(random_seed: int, n_classes: int, n_jobs: int = 1) -> XGBClassifier:
+    """Build an XGBoost multi-class classifier."""
     return XGBClassifier(
         n_estimators=700,
         max_depth=5,
@@ -12,5 +14,5 @@ def build_xgboost(random_seed: int, n_classes: int) -> XGBClassifier:
         objective="multi:softprob",
         num_class=n_classes,
         eval_metric="mlogloss",
-        n_jobs=-1,
+        n_jobs=n_jobs,
     )

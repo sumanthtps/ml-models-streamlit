@@ -25,6 +25,7 @@ from model.xgboost_model import build_xgboost
 DATA_PATH = "data/mobile_price_train.csv"
 RANDOM_SEED = 42
 MODEL_DIR = "model"
+CPU_JOBS = int(os.getenv("CPU_JOBS", "1"))
 METRICS_OUT_FILE = "metrics_comparison.csv"
 
 
@@ -35,14 +36,14 @@ class ModelSpec:
     estimator: Any
 
 
-def get_model_specs(random_seed: int, n_classes: int) -> List[ModelSpec]:
+def get_model_specs(random_seed: int, n_classes: int, cpu_jobs: int) -> List[ModelSpec]:
     return [
         ModelSpec("logistic_regression", "Logistic Regression", build_logistic_regression(random_seed)),
         ModelSpec("decision_tree", "Decision Tree", build_decision_tree(random_seed)),
         ModelSpec("knn", "KNN", build_knn()),
         ModelSpec("naive_bayes", "Naive Bayes", build_naive_bayes()),
-        ModelSpec("random_forest", "Random Forest", build_random_forest(random_seed)),
-        ModelSpec("xgboost", "XGBoost", build_xgboost(random_seed, n_classes)),
+        ModelSpec("random_forest", "Random Forest", build_random_forest(random_seed, n_jobs=cpu_jobs)),
+        ModelSpec("xgboost", "XGBoost", build_xgboost(random_seed, n_classes, n_jobs=cpu_jobs)),
     ]
 
 
@@ -78,6 +79,7 @@ def save_pipeline_as_pkl(pipeline: Pipeline, file_path: str) -> None:
 
 def main() -> None:
     os.makedirs(MODEL_DIR, exist_ok=True)
+    print(f"Training with CPU_JOBS={CPU_JOBS}")
     (
         features_train,
         features_test,
@@ -87,7 +89,7 @@ def main() -> None:
     ) = preprocess_data(DATA_PATH)
 
     n_classes = int(labels_train.nunique())
-    model_specs = get_model_specs(RANDOM_SEED, n_classes)
+    model_specs = get_model_specs(RANDOM_SEED, n_classes, CPU_JOBS)
 
     metric_rows = []
 
