@@ -25,7 +25,7 @@ from model.naive_bayes import build_naive_bayes
 from model.random_forest import build_random_forest
 from model.xgboost_model import build_xgboost
 
-DATA_PATH = "data/mobile_price_train.csv"
+DATA_PATH = "data/mushroom.csv"
 RANDOM_SEED = 42
 MODEL_DIR = "model"
 CPU_JOBS = int(os.getenv("CPU_JOBS", "1"))
