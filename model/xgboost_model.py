@@ -1,8 +1,13 @@
 from xgboost import XGBClassifier
 
 
-def build_xgboost(random_seed: int, n_classes: int, n_jobs: int = 1) -> XGBClassifier:
-    """Build an XGBoost classifier for binary or multi-class data."""
+def build_xgboost(
+    random_seed: int,
+    n_classes: int,
+    n_jobs: int = 1,
+    use_cuda: bool = False,
+) -> XGBClassifier:
+    """Build an XGBoost classifier for binary or multi-class data with optional CUDA."""
     common_kwargs = dict(
         n_estimators=200,
         max_depth=4,
@@ -13,6 +18,12 @@ def build_xgboost(random_seed: int, n_classes: int, n_jobs: int = 1) -> XGBClass
         random_state=random_seed,
         n_jobs=n_jobs,
     )
+
+    if use_cuda:
+        common_kwargs |= {
+            "tree_method": "gpu_hist",
+            "predictor": "gpu_predictor",
+        }
 
     if n_classes == 2:
         return XGBClassifier(
