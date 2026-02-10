@@ -19,6 +19,8 @@ from sklearn.metrics import (
 METRICS_PATH = "metrics_comparison.csv"
 MODEL_DIR = "model"
 DEFAULT_TARGET = "price_range"
+DEFAULT_PREDICT_FILE = "data/mobile_price_train.csv"
+DOWNLOAD_TEST_FILE = "data/mobile_price_test.csv"
 
 MODEL_KEYS = {
     "Logistic Regression": "logistic_regression",
@@ -31,7 +33,7 @@ MODEL_KEYS = {
 
 st.set_page_config(page_title="ML Assignment 2", layout="wide")
 st.title("📱 Mobile Price Classification - ML Assignment 2")
-st.caption("Sumanth T P | 2025AA05544 | ML Models Comparison and Prediction App")
+st.caption("BITS Pilani WILP | Built with 6 classifiers + model explorer")
 
 
 @st.cache_data
@@ -78,14 +80,13 @@ def calculate_metrics(y_true: pd.Series, preds: pd.Series, proba: Any | None) ->
 
 
 with st.sidebar:
-    st.header("Controls")
+    st.header("⚙️ Controls")
     selected_model_name = st.selectbox("Select model", list(MODEL_KEYS.keys()))
-    uploaded_file = st.file_uploader("Upload CSV test data", type=["csv"])
     target_col = st.text_input("Target column (optional)", value=DEFAULT_TARGET)
 
 metrics_df = load_metrics()
 
-overview_tab, predict_tab, insight_tab = st.tabs(["Model Comparison", "Predict", "Observations"])
+overview_tab, predict_tab, insight_tab = st.tabs(["📊 Model Comparison", "🔮 Predict", "🧠 Observations"])
 
 with overview_tab:
     st.subheader("Model Metrics Table")
@@ -103,12 +104,42 @@ with overview_tab:
         st.pyplot(fig)
 
 with predict_tab:
-    st.subheader("Predict on Uploaded CSV")
-    if uploaded_file is None:
-        st.info("Upload a CSV file to run predictions and generate evaluation charts.")
+    st.subheader("Predict on Test CSV")
+    st.caption("Use the default sample file or upload your own CSV, then run predictions and metrics.")
+
+    if os.path.exists(DOWNLOAD_TEST_FILE):
+        with open(DOWNLOAD_TEST_FILE, "rb") as file:
+            st.download_button(
+                label="Download sample test file",
+                data=file.read(),
+                file_name=os.path.basename(DOWNLOAD_TEST_FILE),
+                mime="text/csv",
+            )
+
+    data_source = st.radio(
+        "Prediction data source",
+        ("Use default file", "Upload CSV"),
+        horizontal=True,
+    )
+
+    df = None
+    source_label = ""
+    if data_source == "Use default file":
+        if os.path.exists(DEFAULT_PREDICT_FILE):
+            df = pd.read_csv(DEFAULT_PREDICT_FILE)
+            source_label = f"default file: {DEFAULT_PREDICT_FILE}"
+        else:
+            st.error(f"Default file not found: {DEFAULT_PREDICT_FILE}")
     else:
-        df = pd.read_csv(uploaded_file)
-        st.write("Uploaded data preview")
+        uploaded_file = st.file_uploader("Upload CSV test data", type=["csv"], key="predict_upload")
+        if uploaded_file is None:
+            st.info("Upload a CSV file to run predictions and generate evaluation charts.")
+        else:
+            df = pd.read_csv(uploaded_file)
+            source_label = "uploaded file"
+
+    if df is not None:
+        st.write(f"Data preview ({source_label})")
         st.dataframe(df.head(10), width="stretch")
 
         model = load_model(MODEL_KEYS[selected_model_name])
@@ -135,9 +166,9 @@ with predict_tab:
             mime="text/csv",
         )
 
+        st.markdown("---")
+        st.subheader("Evaluation Metrics")
         if y_true is not None:
-            st.markdown("---")
-            st.subheader("Evaluation on Uploaded Data")
             metric_result = calculate_metrics(y_true, preds, proba)
             st.dataframe(pd.DataFrame([metric_result]), width="stretch")
 
@@ -151,6 +182,10 @@ with predict_tab:
             with col2:
                 st.markdown("**Classification Report**")
                 st.code(classification_report(y_true, preds, zero_division=0), language="text")
+        else:
+            st.warning(
+                f"Column '{target_col}' was not found in this file. Performance metrics require ground-truth labels."
+            )
 
 with insight_tab:
     st.subheader("Model-wise Observations")
