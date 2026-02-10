@@ -125,3 +125,6 @@ def main() -> None:
     metrics_table.to_csv(METRICS_OUT_FILE, index=False)
 
     print(f"\nSaved metrics table {METRICS_OUT_FILE}")
+
+if __name__ == "__main__":
+    main()
