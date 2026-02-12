@@ -19,7 +19,7 @@ from sklearn.metrics import (
 )
 
 METRICS_PATH = "metrics_comparison.csv"
-MODEL_DIR = "model"
+MODEL_DIR = "model/saved_models/"
 DEFAULT_TARGET = "class"
 RAW_DATA_FILE = "data/mushroom.csv"
 DEFAULT_PREDICT_FILE = "data/mushroom_test.csv"
@@ -98,12 +98,11 @@ def calculate_metrics(y_true: pd.Series, preds: pd.Series, proba: Any | None) ->
 with st.sidebar:
     st.header("⚙️ Controls")
     selected_model_name = st.selectbox("Select model", list(MODEL_KEYS.keys()))
-    target_col = st.text_input("Target column (optional)", value=DEFAULT_TARGET)
 
 ensure_split_files()
 metrics_df = load_metrics()
 
-overview_tab, predict_tab, insight_tab = st.tabs(["📊 Model Comparison", "🔮 Predict", "🧠 Observations"])
+overview_tab, predict_tab, insight_tab = st.tabs(["Model Comparison", "Predict", "Observations"])
 
 with overview_tab:
     st.subheader("Model Metrics Table")
@@ -124,15 +123,15 @@ with predict_tab:
     st.subheader("Predict on Test CSV")
     st.caption("Use default split files or upload your own CSV, then run predictions and metrics.")
 
-    dl_cols = st.columns(2)
-    if os.path.exists(DOWNLOAD_TRAIN_FILE):
-        with open(DOWNLOAD_TRAIN_FILE, "rb") as file:
-            dl_cols[0].download_button(
-                label="Download 80% train split",
-                data=file.read(),
-                file_name=os.path.basename(DOWNLOAD_TRAIN_FILE),
-                mime="text/csv",
-            )
+    dl_cols = st.columns(1)
+    # if os.path.exists(DOWNLOAD_TRAIN_FILE):
+    #     with open(DOWNLOAD_TRAIN_FILE, "rb") as file:
+    #         dl_cols[0].download_button(
+    #             label="Download 80% train split",
+    #             data=file.read(),
+    #             file_name=os.path.basename(DOWNLOAD_TRAIN_FILE),
+    #             mime="text/csv",
+    #         )
     if os.path.exists(DOWNLOAD_TEST_FILE):
         with open(DOWNLOAD_TEST_FILE, "rb") as file:
             dl_cols[1].download_button(
@@ -171,11 +170,7 @@ with predict_tab:
         model = load_model(MODEL_KEYS[selected_model_name])
 
         y_true = None
-        if target_col in df.columns:
-            y_true = df[target_col]
-            X_infer = df.drop(columns=[target_col])
-        else:
-            X_infer = df
+        X_infer = df
 
         preds = model.predict(X_infer)
         proba = model.predict_proba(X_infer) if hasattr(model, "predict_proba") else None
@@ -211,9 +206,7 @@ with predict_tab:
                 st.markdown("**Classification Report**")
                 st.code(classification_report(y_true, preds, zero_division=0), language="text")
         else:
-            st.warning(
-                f"Column '{target_col}' was not found in this file. Performance metrics require ground-truth labels."
-            )
+            pass
 
 with insight_tab:
     st.subheader("Model-wise Observations")

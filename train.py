@@ -28,7 +28,7 @@ from model.xgboost_model import build_xgboost
 
 DATA_PATH = "data/mushroom.csv"
 RANDOM_SEED = 42
-MODEL_DIR = "model"
+MODEL_DIR = "model/saved_models"
 CPU_JOBS = int(os.getenv("CPU_JOBS", "1"))
 METRICS_OUT_FILE = "metrics_comparison.csv"
 USE_CUDA = os.getenv("USE_CUDA", "0") == "1"
