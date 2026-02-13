@@ -64,17 +64,35 @@ def load_metrics() -> pd.DataFrame | None:
 
 @st.cache_resource
 def load_model(model_key: str) -> Any:
+    def _ensure_pickle_compat() -> None:
+        """Backfill removed sklearn private classes used in old pickle artifacts."""
+        try:
+            from sklearn.compose import _column_transformer as ct_module
+
+            if not hasattr(ct_module, "_RemainderColsList"):
+                class _RemainderColsList(list):
+                    pass
+
+                ct_module._RemainderColsList = _RemainderColsList
+        except Exception:
+            # If sklearn internals cannot be imported, let the original load error surface.
+            pass
+
     for ext in (".pkl", "_pipeline.joblib", ".joblib"):
         path = os.path.join(MODEL_DIR, f"{model_key}{ext}" if ext.startswith(".") else f"{model_key}{ext}")
         if os.path.exists(path):
             if path.endswith(".pkl"):
                 with open(path, "rb") as file:
-                    return pickle.load(file)
+                    try:
+                        return pickle.load(file)
+                    except AttributeError as exc:
+                        if "_RemainderColsList" not in str(exc):
+                            raise
+                        _ensure_pickle_compat()
+                        file.seek(0)
+                        return pickle.load(file)
             return __import__("joblib").load(path)
     raise FileNotFoundError(f"No model artifact found for key '{model_key}' under {MODEL_DIR}")
-
-
-
 
 def ensure_split_files() -> None:
     if os.path.exists(DOWNLOAD_TRAIN_FILE) and os.path.exists(DOWNLOAD_TEST_FILE):
@@ -82,10 +100,8 @@ def ensure_split_files() -> None:
     if os.path.exists(RAW_DATA_FILE):
         preprocess_data(RAW_DATA_FILE, train_out_path=DOWNLOAD_TRAIN_FILE, test_out_path=DOWNLOAD_TEST_FILE)
 
-
 def get_model_column(df: pd.DataFrame) -> str:
     return "ML Model Name" if "ML Model Name" in df.columns else "ML Model name"
-
 
 def calculate_metrics(y_true: pd.Series, preds: pd.Series, proba: Any | None) -> dict[str, float | str]:
     metrics = {
@@ -108,7 +124,6 @@ def calculate_metrics(y_true: pd.Series, preds: pd.Series, proba: Any | None) ->
         metrics["AUC"] = "N/A"
 
     return metrics
-
 
 with st.sidebar:
     st.header("⚙️ Controls")
