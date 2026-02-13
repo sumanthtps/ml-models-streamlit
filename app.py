@@ -294,7 +294,7 @@ ensure_split_files()
 metrics_df = load_metrics()
 dataset_context = load_dataset_context()
 
-with st.expander("Project Context (dataset, problem statement, sample, population, split details)", expanded=True):
+with st.expander("Description", expanded=True):
     st.markdown("#### Problem Statement")
     st.write("Predict whether a mushroom is edible or poisonous using supervised classification.")
 
@@ -311,14 +311,8 @@ with st.expander("Project Context (dataset, problem statement, sample, populatio
 - **Total columns:** {dataset_context['raw_columns']}
 """
     )
-
-    st.markdown("#### Study Framing")
-    st.markdown(
-        f"""
-- **Sample / unit of analysis:** {dataset_context['sample_unit']}
-- **Population:** {dataset_context['population']}
-"""
-    )
+    st.info("Due to limitation of streamlit, took sample of 12k records(stratified)" \
+    " from original dataset which is arround 67k", icon="ℹ️")
 
 overview_tab, predict_tab, insight_tab = st.tabs(["Model Comparison", "Predict", "Observations"])
 
