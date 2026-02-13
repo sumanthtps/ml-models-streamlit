@@ -294,19 +294,31 @@ ensure_split_files()
 metrics_df = load_metrics()
 dataset_context = load_dataset_context()
 
-st.markdown(
-    f"""
-### Project Context
-- **Problem statement:** Predict whether a mushroom is **edible or poisonous** using supervised classification.
-- **Dataset:** `{RAW_DATA_FILE}`
+with st.expander("Project Context (dataset, problem statement, sample, population, split details)", expanded=True):
+    st.markdown("#### Problem Statement")
+    st.write("Predict whether a mushroom is edible or poisonous using supervised classification.")
+
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Total dataset rows", dataset_context["raw_rows"])
+    c2.metric("Train set rows", dataset_context["train_rows"])
+    c3.metric("Test set rows", dataset_context["test_rows"])
+
+    st.markdown("#### Dataset Details")
+    st.markdown(
+        f"""
+- **Dataset path:** `{RAW_DATA_FILE}`
 - **Target column:** `{dataset_context['target']}`
-- **Sample/unit of analysis:** {dataset_context['sample_unit']}
-- **Population:** {dataset_context['population']}
-- **Dataset size:** {dataset_context['raw_rows']} rows × {dataset_context['raw_columns']} columns
-- **Train set size:** {dataset_context['train_rows']} rows
-- **Test set size:** {dataset_context['test_rows']} rows
+- **Total columns:** {dataset_context['raw_columns']}
 """
-)
+    )
+
+    st.markdown("#### Study Framing")
+    st.markdown(
+        f"""
+- **Sample / unit of analysis:** {dataset_context['sample_unit']}
+- **Population:** {dataset_context['population']}
+"""
+    )
 
 overview_tab, predict_tab, insight_tab = st.tabs(["Model Comparison", "Predict", "Observations"])
 
