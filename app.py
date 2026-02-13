@@ -53,8 +53,32 @@ MODEL_KEYS: dict[str, str] = {
 # ----------------------------
 st.set_page_config(page_title="Mushroom Classification", layout="wide")
 st.title("Mushroom Classification - Edible or Poisonous")
-st.caption("6 classifiers + model explorer")
 
+def load_dataset_context() -> dict[str, Any]:
+    info: dict[str, Any] = {
+        "raw_rows": "N/A",
+        "raw_columns": "N/A",
+        "target": DEFAULT_TARGET,
+        "sample_unit": "One mushroom observation",
+        "population": "All mushrooms represented in the source dataset",
+        "train_rows": "N/A",
+        "test_rows": "N/A",
+    }
+
+    if os.path.exists(RAW_DATA_FILE):
+        raw_df = pd.read_csv(RAW_DATA_FILE)
+        info["raw_rows"] = int(raw_df.shape[0])
+        info["raw_columns"] = int(raw_df.shape[1])
+
+    if os.path.exists(DOWNLOAD_TRAIN_FILE):
+        train_df = pd.read_csv(DOWNLOAD_TRAIN_FILE)
+        info["train_rows"] = int(train_df.shape[0])
+
+    if os.path.exists(DOWNLOAD_TEST_FILE):
+        test_df = pd.read_csv(DOWNLOAD_TEST_FILE)
+        info["test_rows"] = int(test_df.shape[0])
+
+    return info
 
 # ----------------------------
 # Helpers
@@ -268,6 +292,21 @@ with st.sidebar:
 # ----------------------------
 ensure_split_files()
 metrics_df = load_metrics()
+dataset_context = load_dataset_context()
+
+st.markdown(
+    f"""
+### Project Context
+- **Problem statement:** Predict whether a mushroom is **edible or poisonous** using supervised classification.
+- **Dataset:** `{RAW_DATA_FILE}`
+- **Target column:** `{dataset_context['target']}`
+- **Sample/unit of analysis:** {dataset_context['sample_unit']}
+- **Population:** {dataset_context['population']}
+- **Dataset size:** {dataset_context['raw_rows']} rows × {dataset_context['raw_columns']} columns
+- **Train set size:** {dataset_context['train_rows']} rows
+- **Test set size:** {dataset_context['test_rows']} rows
+"""
+)
 
 overview_tab, predict_tab, insight_tab = st.tabs(["Model Comparison", "Predict", "Observations"])
 
