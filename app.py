@@ -149,7 +149,7 @@ with predict_tab:
     #         )
     if os.path.exists(DOWNLOAD_TEST_FILE):
         with open(DOWNLOAD_TEST_FILE, "rb") as file:
-            dl_cols[1].download_button(
+            dl_cols[0].download_button(
                 label="Download 20% test split",
                 data=file.read(),
                 file_name=os.path.basename(DOWNLOAD_TEST_FILE),
