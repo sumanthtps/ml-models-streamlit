@@ -353,7 +353,13 @@ with st.sidebar:
 # App content
 with st.expander("Description", expanded=False):
     st.markdown("#### Problem Statement")
-    st.write("Predict whether a mushroom is edible or poisonous using supervised classification.")
+    st.write(
+        "Build a Machine Learning model that predicts whether a mushroom is poisonous or edible "
+        "based on its physical and environmental attributes. The goal is to help identify potentially "
+        "harmful mushrooms early so safer decisions can be made while handling or consuming them."
+    )
+    st.markdown("- `e` → **Edible Mushroom**")
+    st.markdown("- `p` → **Poisonous Mushroom**")
 
     c1, c2, c3 = st.columns(3)
     c1.metric("Total dataset rows", dataset_context["raw_rows"])
