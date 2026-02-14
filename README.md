@@ -3,31 +3,49 @@
 ---
 
 ## 1) Problem Statement
-The objective of this assignment is to build an end-to-end machine learning classification solution on a single dataset and deploy an interactive Streamlit app.
+Build a Machine Learning model that predicts whether a mushroom is **poisonous or edible** based on its physical and environmental attributes. The goal is to help identify potentially harmful mushrooms early so safer decisions can be made while handling or consuming them.
 
-This repository solves a **binary classification** problem:
-- Predict mushroom class (`class`) from feature attributes in the mushroom dataset.
-- Implement and evaluate the following 6 required models on the **same dataset**:
-  1. Logistic Regression
-  2. Decision Tree Classifier
-  3. K-Nearest Neighbor (KNN)
-  4. Naive Bayes (Gaussian)
-  5. Random Forest (Ensemble)
-  6. XGBoost (Ensemble)
+This application evaluates multiple classification models to determine the outcome:
+
+- `e` → **Edible Mushroom**
+- `p` → **Poisonous Mushroom**
 
 ---
 
 ## 2) Dataset Description
-### 2.1 Dataset selected
-- **Source file used in project:** `data/mushroom.csv`
-- **Task type:** Binary classification
-- **Target column:** `class`
+This project uses a mushroom classification dataset containing real-world style observations of mushroom specimens. The dataset includes cap, gill, stem, veil, ring, and habitat-related features that are highly useful for predicting whether a mushroom is edible or poisonous.
 
-### 2.2 Dataset size and constraints
-- **Total instances:** 12,214
-- **Total columns:** 21
-- **Feature columns:** 20
-- **Target classes:** 2 (`p`, `e`)
+### Dataset Source
+The dataset used in this project is available locally in this repository at: `data/mushroom.csv`
+
+### Dataset Overview
+- **Total Records:** 12,214
+- **Total Columns:** 21
+- **Input Features:** 20
+- **Target Column:** `class`
+
+### Attribute Details
+- `cap-diameter`: diameter of the mushroom cap
+- `cap-shape`: shape of the cap
+- `cap-surface`: texture of the cap surface
+- `cap-color`: color of the cap
+- `does-bruise-or-bleed`: whether the mushroom bruises or bleeds
+- `gill-attachment`: type of gill attachment
+- `gill-spacing`: spacing between gills
+- `gill-color`: color of the gills
+- `stem-height`: height of the stem
+- `stem-width`: width of the stem
+- `stem-root`: root characteristic of the stem
+- `stem-surface`: texture of the stem surface
+- `stem-color`: color of the stem
+- `veil-type`: type of veil present
+- `veil-color`: color of the veil
+- `has-ring`: whether a ring is present
+- `ring-type`: type of ring
+- `spore-print-color`: color of the spore print
+- `habitat`: natural habitat of the mushroom
+- `season`: season in which the mushroom appears
+- `class`: mushroom class (`e` = edible, `p` = poisonous)
 
 ### 2.3 Train/Test split used
 Data is split using stratified train-test split (`test_size=0.2`, `random_state=42`):
