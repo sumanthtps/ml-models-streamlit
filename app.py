@@ -308,6 +308,8 @@ if "predict_data_source" not in st.session_state:
     st.session_state["predict_data_source"] = "Use default file"
 if "uploader_reset_key" not in st.session_state:
     st.session_state["uploader_reset_key"] = 0
+if "selected_model_name_pending" in st.session_state:
+    st.session_state["selected_model_name"] = st.session_state.pop("selected_model_name_pending")
 
 # Sidebar
 with st.sidebar:
@@ -344,7 +346,7 @@ with st.sidebar:
                     "Please select the model manually."
                 )
             else:
-                st.session_state["selected_model_name"] = resolved_model_name
+                st.session_state["selected_model_name_pending"] = resolved_model_name
                 st.toast(f"Selected model for this run: {resolved_model_name}")
                 st.rerun()
 
