@@ -141,7 +141,7 @@ def _ensure_pickle_compat() -> None:
             class _RemainderColsList(list):
                 pass
 
-            setattr(ct_module, "_RemainderColsList", _RemainderColsList)
+            ct_module._RemainderColsList = _RemainderColsList
     except Exception:
         pass
 
@@ -151,9 +151,9 @@ def _patch_simple_imputer_internals(estimator: Any) -> None:
     if isinstance(estimator, SimpleImputer):
         if not hasattr(estimator, "_fill_dtype"):
             try:
-                setattr(estimator, "_fill_dtype", np.asarray(estimator.statistics_).dtype)
+                estimator._fill_dtype = np.asarray(estimator.statistics_).dtype
             except Exception:
-                setattr(estimator, "_fill_dtype", object)
+                estimator._fill_dtype = object
 
     if isinstance(estimator, Pipeline):
         for _, step in estimator.steps:
@@ -179,13 +179,13 @@ def _extract_expected_columns(model: Any) -> Optional[List[str]]:
             if cols:
                 return cols
 
-    if isinstance(model, ColumnTransformer):
-        feature_names = getattr(model, "feature_names_in_", None)
-        if feature_names is not None:
-            try:
-                return list(feature_names)
-            except Exception:
-                return None
+    if isinstance(model, ColumnTransformer) and hasattr(model, "feature_names_in_"):
+        try:
+            return list(model.feature_names_in_)
+        except Exception:
+            return None
+
+    return None
 
 
 def _align_dataframe_to_model(X: pd.DataFrame, model: Any) -> pd.DataFrame:
@@ -320,18 +320,18 @@ with st.sidebar:
     st.markdown("1. Compare model metrics\n2. Predict using CSV\n3. Review observations")
     st.markdown("---")
     st.markdown("### ⚡ Quick Actions")
-    if st.button("Use default test data", width="stretch"):
+    if st.button("Use default test data", use_container_width=True):
         st.session_state["predict_data_source"] = "Use default file"
         st.toast("Prediction source set to default test file.")
 
-    if st.button("Reset uploaded CSV", width="stretch"):
+    if st.button("Reset uploaded CSV", use_container_width=True):
         st.session_state["uploader_reset_key"] = st.session_state.get("uploader_reset_key", 0) + 1
         st.toast("Upload control reset.")
 
     if metrics_df is not None and "MCC" in metrics_df.columns:
         model_col = get_model_column(metrics_df)
         best_model_raw = str(metrics_df.sort_values("MCC", ascending=False).iloc[0][model_col])
-        quick_pick_best = st.button("Pick best model (MCC)", width="stretch")
+        quick_pick_best = st.button("Pick best model (MCC)", use_container_width=True)
         if quick_pick_best:
             resolved_model_name = resolve_model_name_from_metrics(best_model_raw)
             if resolved_model_name is None:
@@ -390,7 +390,7 @@ with st.expander("Description", expanded=False):
         b1, b2 = st.columns([1, 2])
         with b1:
             st.markdown("**Class Distribution**")
-            st.dataframe(class_dist, width="stretch")
+            st.dataframe(class_dist, use_container_width=True)
         with b2:
             fig_cls, ax_cls = plt.subplots(figsize=(6, 3.5))
             ax_cls.bar(class_dist["class"].astype(str), class_dist["count"])
@@ -400,7 +400,7 @@ with st.expander("Description", expanded=False):
             st.pyplot(fig_cls)
 
         with st.expander("Feature sample (first 10 rows)", expanded=False):
-            st.dataframe(raw_df.head(10), width="stretch")
+            st.dataframe(raw_df.head(10), use_container_width=True)
 
 overview_tab, predict_tab, insight_tab = st.tabs(["Model Comparison", "Predict", "Observations"])
 
@@ -422,14 +422,14 @@ with overview_tab:
             except Exception:
                 m3.metric("Top AUC", str(top_row["AUC"]))
 
-        st.dataframe(metrics_df, width="stretch")
+        st.dataframe(metrics_df, use_container_width=True)
         metric_name = st.selectbox("Compare metric", ["Accuracy", "AUC", "Precision", "Recall", "F1", "MCC"])
 
         fig, ax = plt.subplots(figsize=(8, 4))
         plot_df = metrics_df.sort_values(metric_name, ascending=False)
 
         model_col = get_model_column(plot_df)
-        bar_colors = plt.get_cmap("Set2")(np.linspace(0, 1, len(plot_df)))
+        bar_colors = plt.cm.Set2(np.linspace(0, 1, len(plot_df)))
         ax.bar(plot_df[model_col].astype(str), plot_df[metric_name], color=bar_colors, width=0.65)
         ax.set_ylabel(metric_name)
         ax.tick_params(axis="x", rotation=30)
@@ -480,7 +480,7 @@ with predict_tab:
 
     if df is not None:
         st.write(f"Data preview ({source_label})")
-        st.dataframe(df.head(10), width="stretch")
+        st.dataframe(df.head(10), use_container_width=True)
 
         try:
             model = load_model(MODEL_KEYS[selected_model_name])
@@ -515,7 +515,7 @@ with predict_tab:
         output_df["prediction"] = pd.Series(preds).map(to_display_class_label).values
 
         st.write("Predictions preview")
-        st.dataframe(output_df.head(20), width="stretch")
+        st.dataframe(output_df.head(20), use_container_width=True)
         st.download_button(
             label="Download predictions CSV",
             data=output_df.to_csv(index=False).encode("utf-8"),
@@ -529,7 +529,7 @@ with predict_tab:
             st.subheader("Evaluation Metrics")
 
             metric_result = calculate_metrics(y_true, preds, proba, model)
-            st.dataframe(pd.DataFrame([metric_result]), width="stretch")
+            st.dataframe(pd.DataFrame([metric_result]), use_container_width=True)
 
             col1, col2 = st.columns(2)
             with col1:
@@ -580,7 +580,7 @@ with insight_tab:
                 {"ML Model Name": model_name, "Observation about model performance": f"{model_name}: " + ", ".join(line_parts)}
             )
 
-        st.dataframe(pd.DataFrame(observations), width="stretch")
+        st.dataframe(pd.DataFrame(observations), use_container_width=True)
         
 st.markdown("---")
 st.caption("© 2026 Sumanth T P. All rights reserved.")
