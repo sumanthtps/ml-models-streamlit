@@ -307,12 +307,19 @@ metrics_df = load_metrics()
 dataset_context = load_dataset_context()
 raw_df = load_raw_data()
 
+if "selected_model_name" not in st.session_state:
+    st.session_state["selected_model_name"] = list(MODEL_KEYS.keys())[0]
+if "predict_data_source" not in st.session_state:
+    st.session_state["predict_data_source"] = "Use default file"
+if "uploader_reset_key" not in st.session_state:
+    st.session_state["uploader_reset_key"] = 0
+
 # ----------------------------
 # Sidebar
 # ----------------------------
 with st.sidebar:
     st.header("Controls")
-    selected_model_name = st.selectbox("Select model", list(MODEL_KEYS.keys()))
+    selected_model_name = st.selectbox("Select model", list(MODEL_KEYS.keys()), key="selected_model_name")
     st.markdown("---")
     st.caption("Workflow")
     st.markdown("1. Compare model metrics\n2. Predict using CSV\n3. Review observations")
@@ -331,6 +338,7 @@ with st.sidebar:
         best_model = str(metrics_df.sort_values("MCC", ascending=False).iloc[0][model_col])
         quick_pick_best = st.button("Pick best model (MCC)", use_container_width=True)
         if quick_pick_best:
+            st.session_state["selected_model_name"] = best_model
             selected_model_name = best_model
             st.toast(f"Selected model for this run: {best_model}")
 
@@ -413,7 +421,7 @@ with overview_tab:
                 m3.metric("Top AUC", f"{float(top_row['AUC']):.3f}")
             except Exception:
                 m3.metric("Top AUC", str(top_row["AUC"]))
-                
+
         st.dataframe(metrics_df, use_container_width=True)
         metric_name = st.selectbox("Compare metric", ["Accuracy", "AUC", "Precision", "Recall", "F1", "MCC"])
 
@@ -445,6 +453,7 @@ with predict_tab:
         "Prediction data source",
         ("Use default file", "Upload CSV"),
         horizontal=True,
+        key="predict_data_source",
     )
 
     df: Optional[pd.DataFrame] = None
@@ -457,7 +466,11 @@ with predict_tab:
         else:
             st.error(f"Default file not found: {DEFAULT_PREDICT_FILE}")
     else:
-        uploaded_file = st.file_uploader("Upload CSV test data", type=["csv"], key="predict_upload")
+        uploaded_file = st.file_uploader(
+            "Upload CSV test data",
+            type=["csv"],
+            key=f"predict_upload_{st.session_state['uploader_reset_key']}",
+        )
         if uploaded_file is None:
             st.info("Upload a CSV file to run predictions and generate evaluation charts.")
         else:
