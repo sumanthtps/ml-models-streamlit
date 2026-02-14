@@ -333,7 +333,14 @@ if "uploader_reset_key" not in st.session_state:
 # ----------------------------
 with st.sidebar:
     st.header("Controls")
-    selected_model_name = st.selectbox("Select model", list(MODEL_KEYS.keys()), key="selected_model_name")
+    model_options = list(MODEL_KEYS.keys())
+    current_model = st.session_state.get("selected_model_name", model_options[0])
+    selected_model_name = st.selectbox(
+        "Select model",
+        model_options,
+        index=model_options.index(current_model) if current_model in model_options else 0,
+    )
+    st.session_state["selected_model_name"] = selected_model_name
     st.markdown("---")
     st.caption("Workflow")
     st.markdown("1. Compare model metrics\n2. Predict using CSV\n3. Review observations")
