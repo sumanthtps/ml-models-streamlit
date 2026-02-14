@@ -46,6 +46,10 @@ MODEL_KEYS: dict[str, str] = {
     "XGBoost": "xgboost",
 }
 
+CLASS_LABEL_DISPLAY: dict[str, str] = {
+    "p": "poisonous(p)",
+    "e": "edible(e)",
+}
 
 # ----------------------------
 # Streamlit UI setup
@@ -313,6 +317,9 @@ def calculate_metrics(y_true: pd.Series, preds: np.ndarray, proba: Any, model: A
 
     return metrics
 
+def to_display_class_label(value: Any) -> Any:
+    return CLASS_LABEL_DISPLAY.get(str(value), value)
+
 # ----------------------------
 # App data
 # ----------------------------
@@ -412,6 +419,7 @@ with st.expander("Description", expanded=False):
         q3.metric("Total unique feature levels", f"{unique_features:,}")
 
         class_dist = raw_df[DEFAULT_TARGET].value_counts(dropna=False).rename_axis("class").reset_index(name="count")
+        class_dist["class"] = class_dist["class"].map(to_display_class_label)
         class_dist["percent"] = (class_dist["count"] / class_dist["count"].sum() * 100).round(2)
 
         b1, b2 = st.columns([1, 2])
@@ -452,11 +460,12 @@ with overview_tab:
         st.dataframe(metrics_df, use_container_width=True)
         metric_name = st.selectbox("Compare metric", ["Accuracy", "AUC", "Precision", "Recall", "F1", "MCC"])
 
-        fig, ax = plt.subplots(figsize=(9, 4.5))
+        fig, ax = plt.subplots(figsize=(8, 4))
         plot_df = metrics_df.sort_values(metric_name, ascending=False)
 
         model_col = get_model_column(plot_df)
-        ax.bar(plot_df[model_col].astype(str), plot_df[metric_name])
+        bar_colors = plt.cm.Set2(np.linspace(0, 1, len(plot_df)))
+        ax.bar(plot_df[model_col].astype(str), plot_df[metric_name], color=bar_colors, width=0.65)
         ax.set_ylabel(metric_name)
         ax.tick_params(axis="x", rotation=30)
         ax.set_title(f"{metric_name} by Model")
@@ -538,8 +547,8 @@ with predict_tab:
 
         output_df = X_infer.copy()
         if y_true is not None:
-            output_df["ground_truth"] = y_true.values
-        output_df["prediction"] = preds
+            output_df["ground_truth"] = pd.Series(y_true).map(to_display_class_label).values
+        output_df["prediction"] = pd.Series(preds).map(to_display_class_label).values
 
         st.write("Predictions preview")
         st.dataframe(output_df.head(20), use_container_width=True)
@@ -562,13 +571,24 @@ with predict_tab:
             with col1:
                 st.markdown("**Confusion Matrix**")
                 fig_cm, ax_cm = plt.subplots(figsize=(6, 4.5))
-                ConfusionMatrixDisplay.from_predictions(y_true, preds, ax=ax_cm, colorbar=False)
+                labels = list(getattr(model, "classes_", [])) or sorted(pd.unique(pd.concat([pd.Series(y_true), pd.Series(preds)])))
+                display_labels = [to_display_class_label(label) for label in labels]
+                ConfusionMatrixDisplay.from_predictions(
+                    y_true,
+                    preds,
+                    labels=labels,
+                    display_labels=display_labels,
+                    ax=ax_cm,
+                    colorbar=False,
+                )
+                ax_cm.set_title(f"Confusion Matrix - {selected_model_name}")
                 st.pyplot(fig_cm)
 
             with col2:
                 st.markdown("**Classification Report**")
-                st.code(classification_report(y_true, preds, zero_division=0), language="text")
-
+                target_names = [to_display_class_label(label) for label in labels]
+                st.code(classification_report(y_true, preds, labels=labels, 
+                                              target_names=target_names, zero_division=0), language="text")
 
 with insight_tab:
     st.subheader("Model-wise Observations")
