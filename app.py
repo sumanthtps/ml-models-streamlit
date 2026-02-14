@@ -272,6 +272,20 @@ def load_model(model_key: str) -> Any:
 def get_model_column(df: pd.DataFrame) -> str:
     return "ML Model Name" if "ML Model Name" in df.columns else ("ML Model name" if "ML Model name" in df.columns else "model")
 
+def normalize_model_name(name: str) -> str:
+    return "".join(ch.lower() for ch in str(name) if ch.isalnum())
+
+
+def resolve_model_name_from_metrics(metrics_name: str) -> Optional[str]:
+    if metrics_name in MODEL_KEYS:
+        return metrics_name
+
+    normalized_target = normalize_model_name(metrics_name)
+    for ui_name in MODEL_KEYS:
+        if normalize_model_name(ui_name) == normalized_target:
+            return ui_name
+
+    return None
 
 def calculate_metrics(y_true: pd.Series, preds: np.ndarray, proba: Any, model: Any) -> dict[str, Any]:
     metrics: dict[str, Any] = {
@@ -335,13 +349,19 @@ with st.sidebar:
 
     if metrics_df is not None and "MCC" in metrics_df.columns:
         model_col = get_model_column(metrics_df)
-        best_model = str(metrics_df.sort_values("MCC", ascending=False).iloc[0][model_col])
+        best_model_raw = str(metrics_df.sort_values("MCC", ascending=False).iloc[0][model_col])
         quick_pick_best = st.button("Pick best model (MCC)", use_container_width=True)
         if quick_pick_best:
-            st.session_state["selected_model_name"] = best_model
-            selected_model_name = best_model
-            st.toast(f"Selected model for this run: {best_model}")
-
+            resolved_model_name = resolve_model_name_from_metrics(best_model_raw)
+            if resolved_model_name is None:
+                st.warning(
+                    f"Could not match metrics model '{best_model_raw}' to selectable models. "
+                    "Please select the model manually."
+                )
+            else:
+                st.session_state["selected_model_name"] = resolved_model_name
+                st.toast(f"Selected model for this run: {resolved_model_name}")
+                st.rerun()
 
 # ----------------------------
 # App
