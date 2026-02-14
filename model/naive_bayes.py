@@ -9,7 +9,7 @@ def _to_dense_if_sparse(features):
 
 
 def build_naive_bayes() -> Pipeline:
-    """Build GaussianNB with a sparse->dense adapter for one-hot encoded inputs."""
+    """Create GaussianNB with a sparse-to-dense adapter for one-hot features."""
     return Pipeline(
         steps=[
             ("to_dense", FunctionTransformer(_to_dense_if_sparse, accept_sparse=True)),

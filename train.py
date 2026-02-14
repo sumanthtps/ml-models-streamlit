@@ -3,7 +3,7 @@ import pickle
 from dataclasses import dataclass
 from typing import Any, Dict, List
 
-# Prevent Windows loky physical-core detection warnings (wmic missing in some setups).
+# Keep loky worker discovery deterministic across local/CI environments.
 os.environ.setdefault("LOKY_MAX_CPU_COUNT", os.getenv("CPU_JOBS", "1"))
 
 import pandas as pd
@@ -42,6 +42,9 @@ class ModelSpec:
 
 
 def get_model_specs(random_seed: int, n_classes: int, cpu_jobs: int, use_cuda: bool) -> List[ModelSpec]:
+    """
+    Build the list of model configurations used in the training run.
+    """
     return [
         ModelSpec("logistic_regression", "Logistic Regression", build_logistic_regression(random_seed)),
         ModelSpec("decision_tree", "Decision Tree", build_decision_tree(random_seed)),
@@ -57,6 +60,9 @@ def compute_metrics(
     features_test: pd.DataFrame,
     labels_test: pd.Series,
 ) -> Dict[str, float]:
+    """
+    Compute standard classification metrics for a fitted pipeline.
+    """
     predicted_labels = trained_pipeline.predict(features_test)
 
     accuracy = float(accuracy_score(labels_test, predicted_labels))
@@ -83,11 +89,13 @@ def compute_metrics(
 
 
 def save_pipeline_as_pkl(pipeline: Pipeline, file_path: str) -> None:
+    """Persist a fitted pipeline using pickle for app inference."""
     with open(file_path, "wb") as file:
         pickle.dump(pipeline, file)
 
 
 def main() -> None:
+    """Train all models, save artifacts, and export the comparison table."""
     os.makedirs(MODEL_DIR, exist_ok=True)
     print(f"Training with CPU_JOBS={CPU_JOBS}, USE_CUDA={USE_CUDA}")
     (

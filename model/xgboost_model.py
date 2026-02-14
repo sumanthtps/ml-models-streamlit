@@ -6,12 +6,13 @@ from typing import Any, Dict
 
 
 class XGBWithLabelEncoding(BaseEstimator, ClassifierMixin):
-    """XGBoost classifier wrapper that transparently encodes string labels."""
+    """XGBoost wrapper that encodes string labels for fit/predict operations."""
 
     def __init__(self, **xgb_kwargs: Any) -> None:
         self.xgb_kwargs = xgb_kwargs
 
     def fit(self, X: Any, y: Any) -> "XGBWithLabelEncoding":
+        """Fit the underlying XGBoost model after label encoding."""
         self._label_encoder = LabelEncoder()
         encoded_y = self._label_encoder.fit_transform(y)
         self._model = XGBClassifier(**self.xgb_kwargs)
@@ -20,16 +21,20 @@ class XGBWithLabelEncoding(BaseEstimator, ClassifierMixin):
         return self
 
     def predict(self, X: Any) -> np.ndarray:
+        """Predict class labels and decode them to original label space."""
         encoded_predictions = self._model.predict(X)
         return self._label_encoder.inverse_transform(encoded_predictions)
 
     def predict_proba(self, X: Any) -> np.ndarray:
+        """Predict class probabilities from the wrapped XGBoost model."""
         return self._model.predict_proba(X)
 
     def get_params(self, deep: bool = True) -> Dict[str, Any]:
+        """Expose parameters for sklearn compatibility."""
         return {"xgb_kwargs": self.xgb_kwargs}
 
     def set_params(self, **params: Any) -> "XGBWithLabelEncoding":
+        """Set wrapper parameters for sklearn compatibility."""
         if "xgb_kwargs" in params:
             self.xgb_kwargs = params["xgb_kwargs"]
         return self
@@ -41,7 +46,7 @@ def build_xgboost(
     n_jobs: int = 1,
     use_cuda: bool = False,
 ) -> XGBWithLabelEncoding:
-    """Build an XGBoost classifier for binary or multi-class data with optional CUDA."""
+    """Create an XGBoost estimator configured for binary or multi-class tasks."""
     common_kwargs = dict(
         n_estimators=200,
         max_depth=4,

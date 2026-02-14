@@ -25,9 +25,7 @@ from sklearn.metrics import (
 from data.preprocess_data import preprocess_data
 
 
-# ----------------------------
-# Config
-# ----------------------------
+# Application configuration
 METRICS_PATH: str = "metrics_comparison.csv"
 MODEL_DIR: str = "model/saved_models"
 
@@ -51,12 +49,14 @@ CLASS_LABEL_DISPLAY: dict[str, str] = {
     "e": "edible(e)",
 }
 
-# ----------------------------
-# Streamlit UI setup
-# ----------------------------
-st.set_page_config(page_title="Mushroom Classification", page_icon="🍄", layout="wide")
-st.title("🍄 Mushroom Classification Studio")
-st.caption("A guided workspace to compare models, run predictions, and explain results clearly.")
+# Header
+st.set_page_config(page_title="Mushroom Classification - Sumanth T P", page_icon="🍄", layout="wide")
+st.title("🍄 Mushroom Classification")
+st.caption(
+    "This project evaluates six classifiers for mushroom safety prediction: "
+    "Logistic Regression, Decision Tree, KNN, Naive Bayes, Random Forest, and XGBoost. "
+    "Use this app to compare model metrics and generate predictions from test CSV files."
+)
 
 st.markdown(
     """
@@ -107,10 +107,8 @@ def load_dataset_context() -> dict[str, Any]:
 
     return info
 
-# ----------------------------
-# Helpers
-# ----------------------------
 def ensure_split_files() -> None:
+    """Create train/test split files when they are missing."""
     if os.path.exists(DOWNLOAD_TRAIN_FILE) and os.path.exists(DOWNLOAD_TEST_FILE):
         return
     if os.path.exists(RAW_DATA_FILE):
@@ -134,10 +132,7 @@ def load_metrics() -> Optional[pd.DataFrame]:
 
 
 def _ensure_pickle_compat() -> None:
-    """
-    Backfill removed sklearn private classes used in old pickle artifacts.
-    (This addresses common unpickle failures for older ColumnTransformer artifacts.)
-    """
+    """Backfill deprecated sklearn symbols required by legacy pickle artifacts."""
     try:
         from sklearn.compose import _column_transformer as ct_module  # type: ignore
 
@@ -152,13 +147,7 @@ def _ensure_pickle_compat() -> None:
 
 
 def _patch_simple_imputer_internals(estimator: Any) -> None:
-    """
-    Best-effort forward-compat patch for older pickled/joblib sklearn pipelines
-    where SimpleImputer may miss some internal attributes in newer sklearn.
-
-    Your stack trace ended around SimpleImputer.transform using self._fill_dtype.
-    If it's missing, we set it based on statistics_ dtype, else fallback to object.
-    """
+    """Patch SimpleImputer internals for cross-version sklearn compatibility."""
     if isinstance(estimator, SimpleImputer):
         if not hasattr(estimator, "_fill_dtype"):
             try:
@@ -171,17 +160,13 @@ def _patch_simple_imputer_internals(estimator: Any) -> None:
             _patch_simple_imputer_internals(step)
 
     if isinstance(estimator, ColumnTransformer):
-        # transformers_ exists after fit; if missing, nothing to patch.
         if hasattr(estimator, "transformers_"):
             for _, transformer, _ in estimator.transformers_:
                 _patch_simple_imputer_internals(transformer)
 
 
 def _extract_expected_columns(model: Any) -> Optional[List[str]]:
-    """
-    Extract expected input columns from a fitted sklearn pipeline/model.
-    Most reliable is feature_names_in_ (available on many estimators since sklearn 1.0+).
-    """
+    """Return the expected feature column order from the fitted estimator."""
     if hasattr(model, "feature_names_in_"):
         try:
             return list(model.feature_names_in_)
@@ -189,7 +174,6 @@ def _extract_expected_columns(model: Any) -> Optional[List[str]]:
             return None
 
     if isinstance(model, Pipeline):
-        # Try each step
         for _, step in model.steps:
             cols = _extract_expected_columns(step)
             if cols:
@@ -205,14 +189,7 @@ def _extract_expected_columns(model: Any) -> Optional[List[str]]:
 
 
 def _align_dataframe_to_model(X: pd.DataFrame, model: Any) -> pd.DataFrame:
-    """
-    Align inference dataframe to the columns the model was trained on:
-    - add missing expected columns as NaN
-    - drop unexpected extra columns
-    - reorder columns to expected order
-
-    This prevents ColumnTransformer failures when uploaded CSV schema differs.
-    """
+    """Align inference features to the schema expected by the trained model."""
     expected_cols = _extract_expected_columns(model)
     if not expected_cols:
         return X
@@ -236,9 +213,7 @@ def _align_dataframe_to_model(X: pd.DataFrame, model: Any) -> pd.DataFrame:
 
 
 def _safe_find_model_path(model_key: str) -> str:
-    """
-    Prefer joblib artifacts first to avoid stale .pkl.
-    """
+    """Resolve the preferred artifact path for a model key."""
     candidates = [
         os.path.join(MODEL_DIR, f"{model_key}_pipeline.joblib"),
         os.path.join(MODEL_DIR, f"{model_key}.joblib"),
@@ -259,7 +234,6 @@ def load_model(model_key: str) -> Any:
             try:
                 model = pickle.load(f)
             except AttributeError as exc:
-                # Backfill common sklearn private symbol if needed
                 if "_RemainderColsList" not in str(exc):
                     raise
                 _ensure_pickle_compat()
@@ -268,7 +242,6 @@ def load_model(model_key: str) -> Any:
     else:
         model = joblib.load(path)
 
-    # Apply forward-compat patch for SimpleImputer internals
     _patch_simple_imputer_internals(model)
     return model
 
@@ -300,10 +273,9 @@ def calculate_metrics(y_true: pd.Series, preds: np.ndarray, proba: Any, model: A
         "MCC": float(matthews_corrcoef(y_true, preds)),
     }
 
-    # AUC for binary classification (handle string labels safely)
+    # Compute binary ROC-AUC only when probabilities and class labels are available.
     if proba is not None and hasattr(model, "classes_") and len(getattr(model, "classes_", [])) == 2:
         classes = list(model.classes_)
-        # For mushroom datasets, 'p' (poisonous) is a common "positive" label.
         pos_label = "p" if "p" in classes else classes[1]
         pos_index = classes.index(pos_label)
 
@@ -320,9 +292,6 @@ def calculate_metrics(y_true: pd.Series, preds: np.ndarray, proba: Any, model: A
 def to_display_class_label(value: Any) -> Any:
     return CLASS_LABEL_DISPLAY.get(str(value), value)
 
-# ----------------------------
-# App data
-# ----------------------------
 ensure_split_files()
 metrics_df = load_metrics()
 dataset_context = load_dataset_context()
@@ -335,9 +304,7 @@ if "predict_data_source" not in st.session_state:
 if "uploader_reset_key" not in st.session_state:
     st.session_state["uploader_reset_key"] = 0
 
-# ----------------------------
 # Sidebar
-# ----------------------------
 with st.sidebar:
     st.header("Controls")
     model_options = list(MODEL_KEYS.keys())
@@ -377,9 +344,7 @@ with st.sidebar:
                 st.toast(f"Selected model for this run: {resolved_model_name}")
                 st.rerun()
 
-# ----------------------------
-# App
-# ----------------------------
+# App content
 with st.expander("Description", expanded=False):
     st.markdown("#### Problem Statement")
     st.write("Predict whether a mushroom is edible or poisonous using supervised classification.")
@@ -517,7 +482,6 @@ with predict_tab:
         st.write(f"Data preview ({source_label})")
         st.dataframe(df.head(10), use_container_width=True)
 
-        # Load model safely
         try:
             model = load_model(MODEL_KEYS[selected_model_name])
         except Exception as exc:
@@ -559,7 +523,7 @@ with predict_tab:
             mime="text/csv",
         )
 
-        # Metrics + charts if ground truth exists
+        # Metrics + charts
         if y_true is not None:
             st.markdown("---")
             st.subheader("Evaluation Metrics")
@@ -617,3 +581,6 @@ with insight_tab:
             )
 
         st.dataframe(pd.DataFrame(observations), use_container_width=True)
+        
+st.markdown("---")
+st.caption("© 2026 Sumanth T P. All rights reserved.")

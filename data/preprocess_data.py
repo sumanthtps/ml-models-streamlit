@@ -15,6 +15,9 @@ def preprocess_data(
     train_out_path: str = TRAIN_SPLIT_PATH,
     test_out_path: str = TEST_SPLIT_PATH,
 ):
+    """
+    Create train/test splits and return the fitted preprocessing transformer.
+    """
     df = pd.read_csv(data_path)
 
     if TARGET not in df.columns:
