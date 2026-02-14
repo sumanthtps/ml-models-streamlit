@@ -1,96 +1,105 @@
-# Assignment 2: Multi-Model Classification + Streamlit Deployment
-It implements six classification models on one common dataset and provides a Streamlit app for interactive predictions and evaluation.
+# Assignment 2 – Multi-Model Classification with Streamlit
 
 ---
 
 ## 1) Problem Statement
-Build a complete ML workflow for a classification problem by:
-- training and comparing **6 required classifiers** on the **same dataset**,
-- evaluating each model using the required metrics,
-- building an interactive **Streamlit app** for predictions and evaluation,
-- and preparing repository artifacts for deployment/submission.
+The objective of this assignment is to build an end-to-end machine learning classification solution on a single dataset and deploy an interactive Streamlit app.
 
-In this project, the classification task is:
-> **Predict mushroom class (`class`) from mushroom features** (edible vs poisonous categories in the selected dataset encoding).
+This repository solves a **binary classification** problem:
+- Predict mushroom class (`class`) from feature attributes in the mushroom dataset.
+- Implement and evaluate the following 6 required models on the **same dataset**:
+  1. Logistic Regression
+  2. Decision Tree Classifier
+  3. K-Nearest Neighbor (KNN)
+  4. Naive Bayes (Gaussian)
+  5. Random Forest (Ensemble)
+  6. XGBoost (Ensemble)
 
 ---
 
 ## 2) Dataset Description
-- **Dataset used:** `data/mushroom.csv`
-- **Type:** Classification dataset
+### 2.1 Dataset selected
+- **Source file used in project:** `data/mushroom.csv`
+- **Task type:** Binary classification
 - **Target column:** `class`
-- **Total columns:** 21 (20 feature columns + 1 target)
-- **Rows available:** 61,069
 
-### Train/Test preparation
-- The project uses `data/preprocess_data.py` for preprocessing and splitting.
-- Generated split files used by the app:
-  - `data/mushroom_train.csv`
-  - `data/mushroom_test.csv`
+### 2.2 Dataset size and constraints
+- **Total instances:** 12,214
+- **Total columns:** 21
+- **Feature columns:** 20
+- **Target classes:** 2 (`p`, `e`)
 
----
+### 2.3 Train/Test split used
+Data is split using stratified train-test split (`test_size=0.2`, `random_state=42`):
+- **Train set:** 9,771 rows
+- **Test set:** 2,443 rows
 
-## 3) Models Used
-The following six models are implemented (as required in the assignment):
-1. Logistic Regression
-2. Decision Tree Classifier
-3. K-Nearest Neighbor (KNN)
-4. Naive Bayes (Gaussian)
-5. Random Forest (Ensemble)
-6. XGBoost (Ensemble)
-
-Model builder scripts are available under `model/`.
+Data files:
+- `data/mushroom_train.csv`
+- `data/mushroom_test.csv`
 
 ---
 
-## 4) Evaluation Metrics (Required)
-For every model, the following metrics are calculated:
-- Accuracy
-- AUC Score
-- Precision
-- Recall
-- F1 Score
-- Matthews Correlation Coefficient (MCC)
+## 3) Models Used and Evaluation Metrics
+### 3.1 Models implemented
+- Logistic Regression (`model/logistic_regression.py`)
+- Decision Tree (`model/decision_tree.py`)
+- KNN (`model/knn.py`)
+- Naive Bayes (`model/naive_bayes.py`)
+- Random Forest (`model/random_forest.py`)
+- XGBoost (`model/xgboost_model.py`)
+
+### 3.2 Evaluation metrics
+All 6 models are evaluated on:
+1. Accuracy
+2. AUC Score
+3. Precision
+4. Recall
+5. F1 Score
+6. Matthews Correlation Coefficient (MCC)
 
 ---
 
-## 5) Comparison Table (All 6 Models)
-Latest run (from `metrics_comparison.csv`):
+## 4) Comparison Table (All 6 Models)
+The following values are populated from `metrics_comparison.csv`:
 
 | ML Model Name | Accuracy | AUC | Precision | Recall | F1 | MCC |
 |---|---:|---:|---:|---:|---:|---:|
-| Logistic Regression | 0.8444 | 0.9160 | 0.8427 | 0.8463 | 0.8435 | 0.6891 |
-| Decision Tree | 0.9989 | 0.9989 | 0.9988 | 0.9989 | 0.9988 | 0.9977 |
-| KNN | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 |
-| Naive Bayes | 0.6091 | 0.8367 | 0.7572 | 0.6471 | 0.5772 | 0.3891 |
+| Logistic Regression | 0.8420 | 0.9184 | 0.8403 | 0.8438 | 0.8411 | 0.6841 |
+| Decision Tree | 0.9947 | 0.9948 | 0.9945 | 0.9948 | 0.9946 | 0.9892 |
+| KNN | 0.9992 | 1.0000 | 0.9992 | 0.9992 | 0.9992 | 0.9983 |
+| Naive Bayes | 0.6013 | 0.8357 | 0.7550 | 0.6402 | 0.5666 | 0.3782 |
 | Random Forest (Ensemble) | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 | 1.0000 |
-| XGBoost (Ensemble) | 0.9571 | 0.9945 | 0.9555 | 0.9587 | 0.9567 | 0.9142 |
+| XGBoost (Ensemble) | 0.9476 | 0.9913 | 0.9462 | 0.9482 | 0.9471 | 0.8944 |
 
 ---
 
-## 6) Observations About Model Performance
+## 5) Observations on Model Performance
 
 | ML Model Name | Observation about model performance |
 |---|---|
-| Logistic Regression | Strong baseline performance, but clearly below tree/ensemble models on this dataset. |
-| Decision Tree | Very high scores across all metrics, indicating strong class separation with tree rules. |
-| KNN | Perfect scores on this run; likely benefits from local neighborhood structure and preprocessing. |
-| Naive Bayes | Lowest-performing model overall; assumptions appear less suitable for this dataset distribution. |
-| Random Forest (Ensemble) | Perfect or near-perfect metrics, showing robust ensemble performance. |
-| XGBoost (Ensemble) | Excellent all-round performance and high AUC/MCC, slightly below the perfect-score models in this run. |
+| Logistic Regression | Good baseline performance and balanced precision/recall; lower than tree/ensemble methods on this dataset. |
+| Decision Tree | Very strong performance across all metrics; captures non-linear splits effectively. |
+| KNN | Near-perfect scores, indicating strong local separability of classes after preprocessing. |
+| Naive Bayes | Lowest overall scores; conditional independence assumption appears less suitable for this data distribution. |
+| Random Forest (Ensemble) | Best overall performance (perfect metrics in current run), indicating excellent robustness and generalization on this split. |
+| XGBoost (Ensemble) | Excellent AUC and MCC; slightly below Random Forest/KNN but still high-performing and reliable. |
 
 ---
 
-## 7) Streamlit App Features Implemented
-The app (`app.py`) includes all requested core features:
-- **CSV upload option** for inference data
-- **Model selection dropdown** (6 models)
-- **Display of evaluation metrics**
-- **Confusion matrix** and **classification report** (when target column is provided)
-- Prediction preview and downloadable output CSV
-- Model comparison table and metric-wise chart
+## 6) Streamlit App Features
+The Streamlit app (`app.py`) includes all required components:
+- ✅ Dataset upload option (CSV)
+- ✅ Model selection dropdown (multiple models)
+- ✅ Display of evaluation metrics
+- ✅ Confusion matrix / classification report
 
-Run locally with:
+Additional implemented capabilities:
+- Prediction preview table
+- Downloadable prediction CSV
+- Model comparison table and metric visualization
+
+Run locally:
 
 ```bash
 streamlit run app.py
@@ -98,14 +107,15 @@ streamlit run app.py
 
 ---
 
-## 8) Repository Structure
+## 7) Repository Structure (Required)
 
 ```text
-ml-models-streamlit/
+project-folder/
 ├── app.py
-├── train.py
 ├── requirements.txt
 ├── README.md
+├── README_ASSIGNMENT.md
+├── train.py
 ├── metrics_comparison.csv
 ├── data/
 │   ├── mushroom.csv
@@ -118,57 +128,40 @@ ml-models-streamlit/
     ├── knn.py
     ├── naive_bayes.py
     ├── random_forest.py
-    └── xgboost_model.py
+    ├── xgboost_model.py
+    └── saved_models/
+        ├── logistic_regression.pkl
+        ├── decision_tree.pkl
+        ├── knn.pkl
+        ├── naive_bayes.pkl
+        ├── random_forest.pkl
+        └── xgboost.pkl
 ```
 
 ---
 
-## 9) Setup and Execution
+## 8) Requirements and Execution
+Install dependencies:
 
-### Install dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### Train all models and generate metrics
+Train all models and regenerate metrics:
+
 ```bash
 python train.py
 ```
-This will:
-- train all 6 models,
-- save model artifacts in `model/*.pkl`,
-- create/update `metrics_comparison.csv`.
 
-### Run Streamlit app
+Run Streamlit app:
+
 ```bash
 streamlit run app.py
 ```
 
 ---
 
-## 10) Deployment Steps (Streamlit Community Cloud)
-1. Push this repository to GitHub.
-2. Open https://streamlit.io/cloud and sign in with GitHub.
-3. Click **New App**.
-4. Select the repository and branch.
-5. Set main file path as `app.py`.
-6. Click **Deploy**.
-
----
-
-## 11) Submission Notes (as per assignment template)
-Include these in your final submitted PDF in order:
-1. GitHub repository link
-2. Live Streamlit app link
-3. Screenshot of execution on BITS Virtual Lab
-4. This README content (problem statement, dataset description, model comparison, and observations)
-
-> Add your final links below before submission:
-- **GitHub Repo Link:** _<add-your-link>_
-- **Live Streamlit App Link:** _<add-your-link>_
-
----
-
-## 12) Author
+## 9) Student Details
 - **Name:** Sumanth_T_P
 - **BITS ID:** 20250AA5544
+- **Streamlit App Link:** `https://ml-models-app-sumanth-tp-2025aa05544.streamlit.app/`
