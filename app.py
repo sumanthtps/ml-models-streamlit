@@ -50,8 +50,32 @@ MODEL_KEYS: dict[str, str] = {
 # ----------------------------
 # Streamlit UI setup
 # ----------------------------
-st.set_page_config(page_title="Mushroom Classification", layout="wide")
-st.title("Mushroom Classification - Edible or Poisonous")
+st.set_page_config(page_title="Mushroom Classification", page_icon="🍄", layout="wide")
+st.title("🍄 Mushroom Classification Studio")
+st.caption("A guided workspace to compare models, run predictions, and explain results clearly.")
+
+st.markdown(
+    """
+<style>
+    .quick-card {
+        border: 1px solid rgba(49, 51, 63, 0.2);
+        border-radius: 0.8rem;
+        padding: 0.9rem 1rem;
+        margin-bottom: 0.8rem;
+        background: rgba(120, 176, 255, 0.07);
+    }
+    .quick-card h4 {
+        margin: 0;
+        font-size: 1rem;
+    }
+    .quick-card p {
+        margin: 0.35rem 0 0;
+        font-size: 0.9rem;
+    }
+</style>
+""",
+    unsafe_allow_html=True,
+)
 
 def load_dataset_context() -> dict[str, Any]:
     info: dict[str, Any] = {
@@ -275,6 +299,13 @@ def calculate_metrics(y_true: pd.Series, preds: np.ndarray, proba: Any, model: A
 
     return metrics
 
+# ----------------------------
+# App data
+# ----------------------------
+ensure_split_files()
+metrics_df = load_metrics()
+dataset_context = load_dataset_context()
+raw_df = load_raw_data()
 
 # ----------------------------
 # Sidebar
@@ -282,16 +313,32 @@ def calculate_metrics(y_true: pd.Series, preds: np.ndarray, proba: Any, model: A
 with st.sidebar:
     st.header("Controls")
     selected_model_name = st.selectbox("Select model", list(MODEL_KEYS.keys()))
+    st.markdown("---")
+    st.caption("Workflow")
+    st.markdown("1. Compare model metrics\n2. Predict using CSV\n3. Review observations")
+    st.markdown("---")
+    st.markdown("### ⚡ Quick Actions")
+    if st.button("Use default test data", use_container_width=True):
+        st.session_state["predict_data_source"] = "Use default file"
+        st.toast("Prediction source set to default test file.")
+
+    if st.button("Reset uploaded CSV", use_container_width=True):
+        st.session_state["uploader_reset_key"] = st.session_state.get("uploader_reset_key", 0) + 1
+        st.toast("Upload control reset.")
+
+    if metrics_df is not None and "MCC" in metrics_df.columns:
+        model_col = get_model_column(metrics_df)
+        best_model = str(metrics_df.sort_values("MCC", ascending=False).iloc[0][model_col])
+        quick_pick_best = st.button("Pick best model (MCC)", use_container_width=True)
+        if quick_pick_best:
+            selected_model_name = best_model
+            st.toast(f"Selected model for this run: {best_model}")
+
 
 # ----------------------------
 # App
 # ----------------------------
-ensure_split_files()
-metrics_df = load_metrics()
-dataset_context = load_dataset_context()
-raw_df = load_raw_data()
-
-with st.expander("Project Context (dataset, problem statement, sample, population, split details)", expanded=False):
+with st.expander("Description", expanded=False):
     st.markdown("#### Problem Statement")
     st.write("Predict whether a mushroom is edible or poisonous using supervised classification.")
 
@@ -355,6 +402,18 @@ with overview_tab:
     if metrics_df is None:
         st.warning("metrics_comparison.csv not found. Run training first to generate it.")
     else:
+        model_col = get_model_column(metrics_df)
+        top_row = metrics_df.sort_values("MCC", ascending=False).iloc[0] if "MCC" in metrics_df.columns else metrics_df.iloc[0]
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Top model", str(top_row[model_col]))
+        if "Accuracy" in top_row:
+            m2.metric("Top Accuracy", f"{float(top_row['Accuracy']):.3f}")
+        if "AUC" in top_row and pd.notna(top_row["AUC"]):
+            try:
+                m3.metric("Top AUC", f"{float(top_row['AUC']):.3f}")
+            except Exception:
+                m3.metric("Top AUC", str(top_row["AUC"]))
+                
         st.dataframe(metrics_df, use_container_width=True)
         metric_name = st.selectbox("Compare metric", ["Accuracy", "AUC", "Precision", "Recall", "F1", "MCC"])
 
