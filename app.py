@@ -1,5 +1,4 @@
 import os
-import sys
 import pickle
 from typing import Any, Optional, List
 
@@ -93,6 +92,11 @@ def ensure_split_files() -> None:
             test_out_path=DOWNLOAD_TEST_FILE,
         )
 
+@st.cache_data
+def load_raw_data() -> Optional[pd.DataFrame]:
+    if not os.path.exists(RAW_DATA_FILE):
+        return None
+    return pd.read_csv(RAW_DATA_FILE)
 
 @st.cache_data
 def load_metrics() -> Optional[pd.DataFrame]:
@@ -278,14 +282,6 @@ def calculate_metrics(y_true: pd.Series, preds: np.ndarray, proba: Any, model: A
 with st.sidebar:
     st.header("Controls")
     selected_model_name = st.selectbox("Select model", list(MODEL_KEYS.keys()))
-    st.markdown("---")
-    st.caption("Runtime info")
-    st.code(
-        f"python: {sys.version.split()[0]}\n"
-        f"platform: {sys.platform}\n",
-        language="text",
-    )
-
 
 # ----------------------------
 # App
@@ -293,8 +289,9 @@ with st.sidebar:
 ensure_split_files()
 metrics_df = load_metrics()
 dataset_context = load_dataset_context()
+raw_df = load_raw_data()
 
-with st.expander("Description", expanded=True):
+with st.expander("Project Context (dataset, problem statement, sample, population, split details)", expanded=False):
     st.markdown("#### Problem Statement")
     st.write("Predict whether a mushroom is edible or poisonous using supervised classification.")
 
@@ -311,8 +308,44 @@ with st.expander("Description", expanded=True):
 - **Total columns:** {dataset_context['raw_columns']}
 """
     )
-    st.info("Due to limitation of streamlit, took sample of 12k records(stratified)" \
-    " from original dataset which is arround 67k", icon="ℹ️")
+
+    st.markdown("#### Study Framing")
+    st.markdown(
+        f"""
+- **Sample / unit of analysis:** {dataset_context['sample_unit']}
+- **Population:** {dataset_context['population']}
+"""
+    )
+
+    if raw_df is not None and DEFAULT_TARGET in raw_df.columns:
+        st.markdown("#### Data Quality & Balance Snapshot")
+
+        total_missing = int(raw_df.isna().sum().sum())
+        missing_pct = float((raw_df.isna().sum().sum() / raw_df.size) * 100) if raw_df.size else 0.0
+        unique_features = int(raw_df.drop(columns=[DEFAULT_TARGET], errors="ignore").nunique().sum())
+
+        q1, q2, q3 = st.columns(3)
+        q1.metric("Missing values", f"{total_missing:,}")
+        q2.metric("Missing (%)", f"{missing_pct:.2f}%")
+        q3.metric("Total unique feature levels", f"{unique_features:,}")
+
+        class_dist = raw_df[DEFAULT_TARGET].value_counts(dropna=False).rename_axis("class").reset_index(name="count")
+        class_dist["percent"] = (class_dist["count"] / class_dist["count"].sum() * 100).round(2)
+
+        b1, b2 = st.columns([1, 2])
+        with b1:
+            st.markdown("**Class Distribution**")
+            st.dataframe(class_dist, use_container_width=True)
+        with b2:
+            fig_cls, ax_cls = plt.subplots(figsize=(6, 3.5))
+            ax_cls.bar(class_dist["class"].astype(str), class_dist["count"])
+            ax_cls.set_ylabel("Count")
+            ax_cls.set_xlabel("Class")
+            ax_cls.set_title("Target Distribution")
+            st.pyplot(fig_cls)
+
+        with st.expander("Feature sample (first 10 rows)", expanded=False):
+            st.dataframe(raw_df.head(10), use_container_width=True)
 
 overview_tab, predict_tab, insight_tab = st.tabs(["Model Comparison", "Predict", "Observations"])
 
